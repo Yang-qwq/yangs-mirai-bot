@@ -1,0 +1,80 @@
+logs:
+  start: "YangsMiraiBot v{version}@{platform}启动中..."
+  format_msg:
+    auth: "获取SESSION： {session}"
+    response: "Mirai响应：{code}"
+    group_message: "群聊：{group_name}({group_id}).{user_name}({user_id})：{content}"
+    friend_message: "好友：{user_name}({user_id})：{content}"
+    recall_message: "由{user_name}({user_id})撤回消息：{message_id}"
+    nudge_message: "用户{user_id}{action}{target_id}{suffix}"
+    unknown_message: "未知消息：{content}"
+  command_lolicon_api:
+    forbidden: "用户{id}试图涩涩时被拒绝"
+  schedule:
+    task_created: "计划任务{type}:{exec}已注册"
+    unknown_task: "未知的计划任务类型：{type}"
+    schedule_started: "计划任务线程已启动"
+    schedule_error: "计划任务出现错误：{e}"
+    schedule_checked: "待定的计划任务已检查"
+  exceptions:
+    wrong_verify_key_exception: "verify_key错误，请检查配置是否正确"
+    bot_not_exist_exceptions: "指定账号不存在，请检查配置是否正确"
+  openai_chat:
+    history_not_found: "聊天历史文件未找到，将创建一个新的"
+    history_saved: "聊天历史已保存"
+    history_save_error: "保存聊天历史失败：{e}"
+    change_chat_present: "用户{id}正在切换到聊天预设{present}"
+    user_clean_chat: "用户{id}正在清空聊天记录"
+    group_clean_chat: "用户{id}正在清空群聊{group_id}的聊天记录"
+  wordcloud:
+    ignore_wordcloud_collector: "已忽略群{id}的消息：{content}"
+    collected_wordcloud: "已收集群{id}的消息：{content}"
+  try_login: "正在尝试登录账号{account}..."
+  get_session_successful: "成功获取SESSION：{session}"
+  try_reconnect: "连接断开，正在尝试重连..."
+  bilibili_video_match_successful: "匹配到AV/BV号： {video_id}"
+  bilibili_user_url_match_successful: "匹配到Bilibili URL或UID号： {content}"
+  found_command_prefix: "发现命令{content}，正在进入处理流程"
+  auto_restart_info: "出现无法捕获的错误，即将尝试重载..."
+  dice_number: "用户{id}生成的随机骰子的点数：{number}"
+  lolicon_image_editing: "正在编辑图像{img}中..."
+  ignore_bot_message: "已忽略自己的消息：{content}"
+  ignore_bilibili_video_detect: "已忽略用户{id}获取B站视频信息{video_id}的请求"
+  ignore_bilibili_user_detect: "已忽略用户{id}获取B站用户信息{user_id}的请求"
+
+template:
+  bilibili_url_detect:
+    video: "标题：{title}\nUP主：{owner_name}\n{desc}"
+    user: "用户名：{name}\n性别：{sex}\n生日：{birthday}\n粉丝数：{follower}\n{sign}"
+  status:
+    ping: "系统运行正常哦o(*￣▽￣*)ブ~"
+    detail: "YangsMiraiBot - v{version}\n已工作{uptime_days}d {uptime_hours}h {uptime_minutes}m {uptime_seconds}s\n收/发总计：{recv}/{send}\n错误计数：{error_count}\n============\nCPU：{cpu}（{cpu_precent}%）\n内存：{memory_used} MiB/{memory_total} MiB（{memory_precent}%）\n磁盘使用量：{disk_used} GiB/{disk_total} GiB（{disk_precent}%）"
+  lolicon_api:
+    permission_ok: "恭喜，你（或该群聊）拥有该命令的使用权限ヾ(≧▽≦*)o！"
+    help: "{command_prefix}lolicon [command] [keyword]\n. - 直接获取一张图片\n.test - 检查该群聊是否有使用此命令的权限\n.search [keyword] - 关键词搜索\n* 默认情况下该命令仅支持群内请求"
+    info: "标题：{title}\n作者：{author}\nPID：{pid}\ntag：{tags}\n作品尺寸：{width}*{height}\n{original_link}"
+    too_less_arguments: "参数太少，这样做至少需要{n}个参数！\n输入 {command_prefix}lolicon help 查看帮助"
+    forbidden: "不可以涩涩哦~"
+    unknown_arguments: "未知参数{args}！\n输入 {command_prefix}lolicon help 查看帮助"
+    api_search_error: "你搜的啥啊，我没搜到o(≧口≦)o"
+  dice:
+    info: "生成的骰子点数为：{number}"
+  openai_chat:
+    too_less_arguments: "参数太少，使用该命令至少需要1个参数！\n.clean - 清除用户的对话历史与预设\n.with <present>
+    使用指定预设进行聊天"
+    unknown_arguments: "未知参数{args}(っ °Д °;)っ"
+    manual_clean_successful: "清除对话历史成功！"
+    present_not_exist: "预设{present}不存在！"
+    use_present_successful: "使用预设{present}（{present_display_name}）成功！"
+    group_chat_disabled: "未启用群聊内聊天！"
+  builtin_scheduled_tasks:
+    send_hitokoto:
+      prefix: ""
+      prefix_morning: "早上好(*^▽^*)\n\n"  # 自定义内容
+      suffix: "\n\n一言 - https://hitokoto.cn/"
+  wordcloud:
+    unknown_arguments: "未知参数{args}(っ °Д °;)っ"
+    too_less_arguments: "参数太少，这样做至少需要{n}个参数！\n输入 {command_prefix}wordcloud help 查看帮助"
+    help: "{command_prefix}wordcloud [command]\n.help - 查看帮助\n.generate - 生成词云\n* 该命令仅支持群内请求"
+    not_in_group: "该功能仅在群聊中可用(；′⌒`)"
+  unknown_command: "未知命令w(ﾟДﾟ)w！"

@@ -1,0 +1,8 @@
+__pycache__/
+.idea/
+data/
+logs/
+cache/
+fonts/
+
+config.yml

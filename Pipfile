@@ -1,0 +1,23 @@
+[[source]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+openai = "*"
+pyyaml = "*"
+websockets = "*"
+httpx = "*"
+bilibili-api-python = "*"
+gradio-client = "*"
+pillow = "*"
+psutil = "*"
+schedule = "*"
+wordcloud = "*"
+
+[dev-packages]
+pytest = "*"
+
+[requires]
+python_version = "3.11"
+python_full_version = "3.11.2"

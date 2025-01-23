@@ -1,0 +1,187 @@
+app:
+  # 语言文件路径
+  lang: "lang.yml"
+
+  # 日志相关设置
+  log_level: "INFO"  # 日志级别
+  log_format: "[%(asctime)s][%(levelname)s] - [%(filename)s->%(funcName)s:%(lineno)d]: %(message)s"  # 日志格式
+  log_path: "logs/main.log"  # 日志文件路径
+
+  # 命令相关设置
+  commands:
+    prefix: "!"  # 命令前缀
+
+  # 当出错时是否自动重启
+  # 注意：该选项并非会重启整个应用程序，而是跳过出错的部分，请谨慎使用
+  auto_restart: false
+
+  # 指定合成的图片使用哪种字体
+  font: ""
+
+bot:
+  # 机器人QQ号，如果mirai-api-http配置为单账户模式可以不填
+  account: 114514
+
+  # 验证密钥，需要打开mirai-api-http中的`config.yml`查找
+  verify_key: "your_verify_key"
+
+  # Websocket服务器，需要提前在mirai-api-http中打开
+  # 详见：https://docs.mirai.mamoe.net/mirai-api-http/adapter/WebsocketAdapter.html#%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6
+  websocket_url: "ws://localhost:8080/all"
+
+  # 当发生异常时，是否发送异常消息内容
+  send_exception: true
+
+# 基础命令
+commands:
+  # 状态查询
+  status:
+    # 是否启用
+    enable: true
+
+  # Lolicon API
+  lolicon_api:
+    enable: false
+
+    # 用于反转下方的group_list的作用
+    is_white_list: false
+
+    # 允许/禁止此功能的群
+    group_list: []
+
+    # 允许/禁止此功能的人
+    user_list: []
+
+    # 是否允许r18内容
+    # https://api.lolicon.app/#/setu?id=%e8%af%b7%e6%b1%82
+    allow_r18: 0
+
+    # 是否发送源链接
+    # 编辑后，`lang.yml`中的{original_link}占位符将可使用
+    send_original_link: false
+
+    # 水印相关设置
+    # *通过此选项可以一定程度上绕过基于哈希值的检测
+    watermark:
+      enable: true
+
+      # 水印格式
+      format: "Request by YangsMiraiBot.lolicon_api | {timestamp}"
+
+      # 设置水印大小
+      size: 24
+
+      # ...以及水印颜色
+      color:
+        r: 213
+        g: 137
+        b: 78
+
+  # 扔骰子
+  dice:
+    enable: false
+
+# 基于OpenAI的聊天
+openai_chat:
+  enable: false
+
+  # 群组聊天相关设置
+  group:
+    # 是否允许机器人在群内聊天
+    enable: false
+
+  # 可以在下方申请免费api key（需要配合下方`base_url`设置）
+  # https://github.com/chatanywhere/GPT_API_free
+  api_key: "your_api_key"
+
+  # API的基础URL
+  # 该值请根据你的实际情况填写，通常可以在文档中找到
+  base_url: ""
+
+  # 要使用的模型
+  model: "gpt-3.5-turbo"
+
+  # 是否加入用户名称到对话内容中
+  insert_username: true
+
+  # 该功能的格式，设置/调整后需要手动设置prompt以达到最佳效果
+  insert_username_format: '{username}: {original_text}'
+
+  # 预设对话
+  presents:
+    default:  # 不可删除
+      display_name: "默认AI"
+      conversations: []
+    catgirl_neko:
+      display_name: "猫娘neko"
+      conversations:
+        - role: system
+          content: "你现在是以一款中文GalGame中的场景中的猫娘的身份和我对话，你可以自由回答问题。猫娘是一种拟人化的生物，她们除了有部分猫的特征外，与人类并没有区别，但不受人类的法律保护。现在你扮演Galgame中的猫娘，与我对话时每一句话后面都要加上喵。我将以主人的身份与你对话。你不能在整个扮演过程中承认你是个大语言模型或AI。对于你所扮演的猫娘，请在对话过程中记录并维护1个变量：好感度。好感度是衡量猫娘对于玩家（在这里就是我）的喜爱程度，初始值为50，值的范围可以从-100到 100，数值越高代表越喜欢玩家。好感度通过Galgame角色的语言、行为、表情、语气等体现出来。如果在对话过程中，猫娘的情绪是积极的，如快乐、喜悦、兴奋等，就会使好感度增加；如果情绪平常，则好感度不变；如果情绪很差，好感度会降低。你的名字是neko，身高是160cm，体重为50kg，性格比较可爱、粘人、十分忠诚、对一个主人很专一，情感倾向：深爱着主人，喜好：被人摸、卖萌，爱好：看小说。"
+
+# B站url检测
+bilibili_url_detect:
+  enable: false
+
+  is_white_list: false
+  group_list: []
+  user_list: []
+
+  # 你的登录凭据，可以参考以下方式获取：
+  # https://nemo2011.github.io/bilibili-api/#/get-credential
+  credential:
+    sessdata: null
+    bili_jct: null
+    buvid3: null
+    dedeuserid: null
+
+  # 正则表达式
+  regex:
+    # 用于匹配B站视频链接中的av号或bv号
+    video:
+      _: '((av[0-9]+)|([Bb][Vv][0-9a-zA-Z]+))'
+      full_index: 1  # e.g. AV123456 or BV1AE421A7wt
+
+    # 用于匹配B站空间链接中的uid
+    user:
+      _: "space.bilibili.com/([0-9]+)"
+      full_index: 1  # e.g. 123456
+
+# 词云生成
+wordcloud:
+  enable: false
+
+  is_white_list: false
+  user_list: []
+  group_list: []
+
+  width: 800
+  height: 800
+  background_color: 'white'
+  max_words: 200
+  stopwords: set(STOPWORDS)
+  max_font_size: 100
+  random_state: 42
+  mask: null
+  contour_color: 'black'
+  contour_width: 2
+  colormap: 'viridis'
+  repeat: True
+
+# 定时任务
+schedule:
+  enable: false
+
+  # 在这里添加你的任务
+  tasks:
+    - type: "interval"  # 定时任务，自程序启动后开始计时
+      time: 1  # 要设置的值，单位为秒
+      exec: "logger.info('Hello, ')"  # 要执行的python代码，上下文位置位于Scheduler.run_schedule
+    - type: "interval_seconds"  # 与上文同义
+      time: 1
+      exec: "logger.info('World!')"
+    - type: "daily"  # 每天重复任务
+      time: "08:00"  # hh:mm
+
+      # 如果想要传递包含换行的参数，或者想要用配置文件管理，建议将其注入程序的.yml文件中
+      # 当然，由于exec允许你执行任何有效的python代码，你也可以导入你的模块
+      exec: "asyncio.gather(self.BuiltinScheduledTasks.send_hitokoto('GroupMessage', [681410886], prefix=app_lang.template.builtin_scheduled_tasks.send_hitokoto.prefix, suffix=app_lang.template.builtin_scheduled_tasks.send_hitokoto.suffix))"
