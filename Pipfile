@@ -8,12 +8,12 @@ openai = "*"
 pyyaml = "*"
 websockets = "*"
 httpx = "*"
-bilibili-api-python = "*"
 gradio-client = "*"
 pillow = "*"
 psutil = "*"
 schedule = "*"
 wordcloud = "*"
+bilibili-api-python = "==16.3.0"
 
 [dev-packages]
 pytest = "*"
