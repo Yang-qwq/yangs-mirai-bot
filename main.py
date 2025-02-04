@@ -27,8 +27,9 @@ import psutil
 import schedule
 from PIL import Image, ImageDraw, ImageFont
 from wordcloud import WordCloud
+import jieba
 
-APP_VERSION = "0.1.1.0"
+APP_VERSION = "0.1.1.1"
 
 
 def init_structure():
@@ -1277,9 +1278,9 @@ class Bot(object):
                 repeat=app_config.wordcloud.repeat,
             )
 
-            # 打开保存的文件，然后生成词云
+            # 打开保存的文件，分词后生成词云
             with open('data/wordcloud/%s.txt' % mirai_res.get_group_id(), 'r', encoding='utf-8') as f:
-                wc.generate(f.read())
+                wc.generate(' '.join(jieba.lcut(f.read())))
 
             # 保存词云
             wc.to_file('cache/wordcloud/wordcloud_%s.png' % mirai_res.get_group_id())
@@ -1530,6 +1531,7 @@ class Bot(object):
                         )
 
     @on_message_types('GroupMessage')
+    @no_command_prefix()  # 不需要命令前缀
     async def _wordcloud_collector(self, mirai_res: MiraiResponse):
         if not whitelist_check(
                 mirai_res.get_sender_id(), mirai_res.get_group_id(),
