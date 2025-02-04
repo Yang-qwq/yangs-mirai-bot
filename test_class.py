@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import main
 import time
+
+import main
 
 msg_list = [
     {"syncId": "", "data": {"code": 0, "session": "SESSION"}},

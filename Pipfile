@@ -14,9 +14,13 @@ psutil = "*"
 schedule = "*"
 wordcloud = "*"
 bilibili-api-python = "==16.3.0"
+jieba = "*"
+webdriver-manager = "*"
+selenium = "*"
 
 [dev-packages]
 pytest = "*"
+isort = "*"
 
 [requires]
 python_version = "3.11"
