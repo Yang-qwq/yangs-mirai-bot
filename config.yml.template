@@ -81,6 +81,29 @@ commands:
   dice:
     enable: false
 
+  # 网页截图
+  web_screenshot:
+    enable: false
+
+    is_white_list: false
+    group_list: []
+    user_list: []
+
+    # 你的浏览器类型
+    # 可选值（不区分大小写）：Chrome, Firefox, Edge
+    browser: "Firefox"
+
+    # 你的浏览器二进制文件路径
+    # 例如：/usr/bin/firefox-esr
+    binary_location: "/usr/bin/firefox-esr"
+
+    # 最大滑动次数
+    # 用于处理需要滚动才能加载的页面，避免滑动次数过多
+    max_scroll_count: 10
+
+    # 每次滑动等待时间
+    scroll_delay: 1
+
 # 基于OpenAI的聊天
 openai_chat:
   enable: false

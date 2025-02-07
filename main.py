@@ -1,35 +1,40 @@
 # -*- coding: utf-8 -*-
-import json
-import os
-# import sys
-from typing import Optional
-
-import PIL
-import yaml
-import re
-import logging
 import asyncio
-import time
-import websockets
-import platform
-import traceback
-import random
 import base64
 import gzip
+import json
+import logging
+import os
+import platform
+import random
+import re
 import shutil
+import time
+import traceback
 from datetime import datetime
+from typing import Optional
 
-import httpx
-from openai import OpenAI
 import bilibili_api
+import httpx
+import jieba
 # from gradio_client import Client as GradioClient
 import psutil
 import schedule
-from PIL import Image, ImageDraw, ImageFont
+import websockets
+import yaml
+from openai import OpenAI
+from PIL import Image, ImageDraw, ImageFont, UnidentifiedImageError
+from selenium.webdriver import (Chrome, ChromeOptions, Edge, EdgeOptions,
+                                Firefox, FirefoxOptions)
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.edge.service import Service as EdgeService
+from selenium.webdriver.firefox.service import Service as FirefoxService
+from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.firefox import GeckoDriverManager
+from webdriver_manager.microsoft import EdgeChromiumDriverManager
 from wordcloud import WordCloud
-import jieba
 
-APP_VERSION = "0.1.1.1"
+APP_VERSION = "0.1.2.0"
 
 
 def init_structure():
@@ -41,8 +46,10 @@ def init_structure():
     os.makedirs("data/chat/user", exist_ok=True)
     os.makedirs("data/wordcloud", exist_ok=True)
     os.makedirs("data/wordcloud", exist_ok=True)
+    os.makedirs('data/web_screenshot/drivers', exist_ok=True)
     os.makedirs('cache/lolicon_api', exist_ok=True)
     os.makedirs('cache/wordcloud', exist_ok=True)
+    os.makedirs('cache/web_screenshot', exist_ok=True)
     os.makedirs('fonts', exist_ok=True)
     os.makedirs("logs", exist_ok=True)
 
@@ -207,6 +214,100 @@ class Lang:
 
     def get_data(self):
         return self._data
+
+
+class WebScreenshotService:
+    def __init__(self, browser: str):
+        """
+
+        :param browser: 浏览器类型，必须为'chrome'、'firefox'或'edge'（大小写不敏感）
+        """
+        if browser.lower() == 'chrome':
+            # 设置chrome为无头模式
+            self.options = ChromeOptions()
+            self.options.add_argument('--headless')
+            self.options.add_argument('--start-maximized')
+        elif browser.lower() == 'firefox':
+            # 设置firefox为无头模式
+            self.options = FirefoxOptions()
+            self.options.add_argument('--headless')
+        elif browser.lower() == 'edge':
+            # 设置edge为无头模式
+            self.options = EdgeOptions()
+            self.options.add_argument('--headless')
+            self.options.add_argument('--start-maximized')
+        else:
+            raise ValueError('Invalid browser type')
+
+        # 初始化Service
+        if browser.lower() == 'chrome':
+            self.service = ChromeService(ChromeDriverManager().install())
+        elif browser.lower() == 'firefox':
+            self.service = FirefoxService(GeckoDriverManager().install())
+        elif browser.lower() == 'edge':
+            self.service = EdgeService(EdgeChromiumDriverManager().install())
+
+        # 初始化WebDriver
+        if browser.lower() == 'chrome':
+            self.driver = Chrome(service=self.service, options=self.options)
+        elif browser.lower() == 'firefox':
+            self.driver = Firefox(service=self.service, options=self.options)
+        elif browser.lower() == 'edge':
+            self.driver = Edge(service=self.service, options=self.options)
+
+    async def capture_full_page_screenshot(self, url, output_file):
+        """
+
+        :param url: 网页URL
+        :param output_file: 输出文件路径
+        :return:
+        """
+        logger.debug(app_lang.logs.web_screenshot.capturing.format(url=url))
+
+        # 访问指定的URL
+        self.driver.get(url)
+
+        last_height = self.driver.execute_script('return document.body.parentNode.scrollHeight')
+
+        current_scroll_count = 0
+        while True:
+            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            await asyncio.sleep(app_config.commands.web_screenshot.scroll_delay)
+            new_height = self.driver.execute_script('return document.body.parentNode.scrollHeight')
+
+            if new_height == last_height:
+                break
+
+            if current_scroll_count >= app_config.commands.web_screenshot.max_scroll_count:
+                break
+
+            last_height = new_height
+
+            current_scroll_count += 1
+
+            logger.info(
+                app_lang.logs.web_screenshot.scroll_count.format(
+                    count=current_scroll_count,
+                    max=app_config.commands.web_screenshot.max_scroll_count
+                )
+            )
+
+        # 最后再等待一段时间，确保渲染完成
+        self.driver.implicitly_wait(10)
+
+        # 获取网页的长和宽
+        required_width = self.driver.execute_script('return document.body.parentNode.scrollWidth')
+        required_height = self.driver.execute_script('return document.body.parentNode.scrollHeight')
+
+        # 设置浏览器窗口的大小
+        self.driver.set_window_size(required_width, required_height)
+
+        # 截图并保存
+        self.driver.save_screenshot(output_file)
+
+    def close(self):
+        # 关闭浏览器
+        self.driver.quit()
 
 
 def on_message_types(*message_types):
@@ -515,7 +616,7 @@ class MinigameGobang(object):
     #
     # print(check_winner(board))  # 输出 1
 
-    
+
 class MiraiMessageBase(object):
     def __init__(self, full_response_structure: dict):
         """初始化Mirai消息基类
@@ -766,6 +867,10 @@ class Bot(object):
                 dedeuserid=app_config.bilibili_url_detect.credential.dedeuserid
             )
 
+        # 创建WebScreenshotService对象
+        if app_config.commands.web_screenshot.enable:
+            self.web_screenshot_service = WebScreenshotService(app_config.commands.web_screenshot.browser)
+
         # 创建计划任务对象，开始注册计划任务
         if app_config.schedule.enable:
             self.schedule_thread = None
@@ -881,6 +986,12 @@ class Bot(object):
                     'send' + mirai_res.get_message_type(), mirai_res.get_target_loc(),
                     await self._command_wordcloud(args, mirai_res))
 
+            # 网页截图
+            elif cmd_type == 'wsc':
+                return await self.send(
+                    'send' + mirai_res.get_message_type(), mirai_res.get_target_loc(),
+                    await self._command_web_screenshot(args, mirai_res)
+                )
             else:  # 未知命令
                 return await self.send(
                     'send' + mirai_res.get_message_type(), mirai_res.get_target_loc(),
@@ -1021,7 +1132,7 @@ class Bot(object):
                             'cache/lolicon_api/modified_' +
                             res.json()['data'][0]['urls']['original'].split('/')[-1]
                         )
-                except PIL.UnidentifiedImageError as e:
+                except UnidentifiedImageError as e:
                     # 立刻删除问题图像（也有可能不是图像）
                     os.remove(
                         'cache/lolicon_api/' + res.json()['data'][0]['urls']['original'].split('/')[-1])
@@ -1161,7 +1272,18 @@ class Bot(object):
             return [
                 {
                     "type": "Plain",
-                    "text": app_lang.template.openai_chat.too_less_arguments,
+                    "text": app_lang.template.openai_chat.too_less_arguments.format(
+                        n=1, command_prefix=app_config.app.commands.prefix
+                    ),
+                }
+            ]
+        elif args[0] == 'help':
+            return [
+                {
+                    "type": "Plain",
+                    "text": app_lang.template.openai_chat.help.format(
+                        command_prefix=app_config.app.commands.prefix
+                    ),
                 }
             ]
         else:
@@ -1312,7 +1434,73 @@ class Bot(object):
                     ),
                 }
             ]
-          
+
+    async def _command_web_screenshot(self, args: list, mirai_res: MiraiResponse):
+        if len(args) == 0:
+            return [
+                {
+                    "type": "Plain",
+                    "text": app_lang.template.web_screenshot.too_less_arguments.format(
+                        n=1, command_prefix=app_config.app.commands.prefix
+                    ),
+                }
+            ]
+        elif args[0] == 'help':
+            return [
+                {
+                    "type": "Plain",
+                    "text": app_lang.template.web_screenshot.help,
+                }
+            ]
+        else:
+            # 检查是否为黑名单
+            if not whitelist_check(
+                    mirai_res.get_sender_id(), mirai_res.get_group_id(),
+                    user_list=app_config.commands.web_screenshot.user_list,
+                    group_list=app_config.commands.web_screenshot.group_list,
+                    reverse_result=app_config.commands.web_screenshot.is_white_list
+            ):
+                return [
+                    {
+                        "type": "Plain",
+                        "text": app_lang.template.web_screenshot.forbidden,
+                    }
+                ]
+
+            # 开始截图
+            # 设置文件名称
+            file_name = 'cache/web_screenshot/%s.png' % int(time.time())
+            try:
+                await self.web_screenshot_service.capture_full_page_screenshot(args[0], file_name)
+            except Exception as e:
+                logger.error(str(e))
+                if app_config.bot.send_exception:
+                    return [
+                        {
+                            "type": "Plain",
+                            "text": str(e),
+                        }
+                    ]
+                return
+            else:
+                with open(file_name, 'rb') as f:
+                    image_b64 = base64.b64encode(f.read()).decode('utf-8')
+
+                return [
+                    {
+                        "type": "Image",
+                        "imageId": "",
+                        "url": '',
+                        "path": None,
+                        "base64": image_b64,
+                        "width": 0,
+                        "height": 0,
+                        "size": 0,
+                        "imageType": "UNKNOWN",
+                        "isEmoji": False,
+                    }
+                ]
+
     @on_message_types('GroupMessage', 'FriendMessage')
     @include_bot_at()
     @no_command_prefix()
@@ -1655,6 +1843,12 @@ class Bot(object):
             except SessionInvalidException:
                 logger.critical(traceback.format_exc())
                 return -1003
+            except KeyboardInterrupt:
+                # 关闭无头浏览器
+                if app_config.commands.web_screenshot.enable:
+                    self.web_screenshot_service.close()
+
+                return 0
             except Exception:
                 logger.critical(traceback.format_exc())
                 self.counter['error'] += 1

@@ -29,6 +29,9 @@ logs:
   wordcloud:
     ignore_wordcloud_collector: "已忽略群{id}的消息：{content}"
     collected_wordcloud: "已收集群{id}的消息：{content}"
+  web_screenshot:
+    capturing: "正在尝试生成{url}的网页截图..."
+    scroll_count: "正在截图中... - 已滚动{count}/{max}次"
   try_login: "正在尝试登录账号{account}..."
   get_session_successful: "成功获取SESSION：{session}"
   try_reconnect: "连接断开，正在尝试重连..."
@@ -60,8 +63,8 @@ template:
   dice:
     info: "生成的骰子点数为：{number}"
   openai_chat:
-    too_less_arguments: "参数太少，使用该命令至少需要1个参数！\n.clean - 清除用户的对话历史与预设\n.with <present>
-    使用指定预设进行聊天"
+    too_less_arguments: "参数太少，使用该命令至少需要{n}个参数！\n输入 {command_prefix}chat help 查看帮助"
+    help: "{command_prefix}chat [command]\n.help - 查看帮助\n.with [present] - 切换聊天预设\n.clean - 清除对话历史"
     unknown_arguments: "未知参数{args}(っ °Д °;)っ"
     manual_clean_successful: "清除对话历史成功！"
     present_not_exist: "预设{present}不存在！"
@@ -77,4 +80,7 @@ template:
     too_less_arguments: "参数太少，这样做至少需要{n}个参数！\n输入 {command_prefix}wordcloud help 查看帮助"
     help: "{command_prefix}wordcloud [command]\n.help - 查看帮助\n.generate - 生成词云\n* 该命令仅支持群内请求"
     not_in_group: "该功能仅在群聊中可用(；′⌒`)"
+  web_screenshot:
+    too_less_arguments: "参数太少，这样做至少需要{n}个参数！\n输入 {command_prefix}wsc help 查看帮助"
+    help: "{command_prefix}wsc <url|help>\n.<url> - 要截图的目标url\n.help - 查看帮助"
   unknown_command: "未知命令w(ﾟДﾟ)w！"
