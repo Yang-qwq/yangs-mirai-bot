@@ -34,7 +34,7 @@ from webdriver_manager.firefox import GeckoDriverManager
 from webdriver_manager.microsoft import EdgeChromiumDriverManager
 from wordcloud import WordCloud
 
-APP_VERSION = "0.1.2.0"
+APP_VERSION = "0.1.2.1"
 
 
 def init_structure():
@@ -1289,7 +1289,8 @@ class Bot(object):
         else:
             # 创建OpenAIChat对象
             openai_chat = OpenAIChat(
-                mirai_res.get_sender_id(), is_group=(True if mirai_res.get_message_type() == 'GroupMessage' else False)
+                mirai_res.get_group_id() if mirai_res.get_message_type() == 'GroupMessage' else mirai_res.get_sender_id(),
+                is_group=(True if mirai_res.get_message_type() == 'GroupMessage' else False)
             )
 
             # 进入处理参数
@@ -1522,7 +1523,8 @@ class Bot(object):
 
         # 创建对话对象
         openai_chat = OpenAIChat(
-            mirai_res.get_sender_id(), is_group=(True if mirai_res.get_message_type() == 'GroupMessage' else False)
+            mirai_res.get_group_id() if mirai_res.get_message_type() == 'GroupMessage' else mirai_res.get_sender_id(),
+            is_group=(True if mirai_res.get_message_type() == 'GroupMessage' else False)
         )
 
         # 检查是否存在用户对话
