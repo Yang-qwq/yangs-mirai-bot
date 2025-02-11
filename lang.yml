@@ -31,7 +31,6 @@ logs:
     collected_wordcloud: "已收集群{id}的消息：{content}"
   web_screenshot:
     capturing: "正在尝试生成{url}的网页截图..."
-    scroll_count: "正在截图中... - 已滚动{count}/{max}次"
   try_login: "正在尝试登录账号{account}..."
   get_session_successful: "成功获取SESSION：{session}"
   try_reconnect: "连接断开，正在尝试重连..."

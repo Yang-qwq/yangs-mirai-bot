@@ -35,7 +35,7 @@ from webdriver_manager.microsoft import EdgeChromiumDriverManager
 from selenium.webdriver.common.by import By
 from wordcloud import WordCloud
 
-APP_VERSION = "0.1.2.1"
+APP_VERSION = "0.1.2.2"
 
 
 def init_structure():
@@ -263,7 +263,7 @@ class WebScreenshotService:
         :param output_file: 输出文件路径
         :return:
         """
-        logger.debug(app_lang.logs.web_screenshot.capturing.format(url=url))
+        logger.info(app_lang.logs.web_screenshot.capturing.format(url=url))
 
         # 访问指定的URL
         self.driver.get(url)
