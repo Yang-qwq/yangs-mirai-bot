@@ -97,12 +97,8 @@ commands:
     # 例如：/usr/bin/firefox-esr
     binary_location: "/usr/bin/firefox-esr"
 
-    # 最大滑动次数
-    # 用于处理需要滚动才能加载的页面，避免滑动次数过多
-    max_scroll_count: 10
-
-    # 每次滑动等待时间
-    scroll_delay: 1
+    # 最大隐性等待时间
+    implicitly_wait_time: 10
 
 # 基于OpenAI的聊天
 openai_chat:
