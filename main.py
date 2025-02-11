@@ -32,9 +32,10 @@ from selenium.webdriver.firefox.service import Service as FirefoxService
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.firefox import GeckoDriverManager
 from webdriver_manager.microsoft import EdgeChromiumDriverManager
+from selenium.webdriver.common.by import By
 from wordcloud import WordCloud
 
-APP_VERSION = "0.1.2.1"
+APP_VERSION = "0.1.2.2"
 
 
 def init_structure():
@@ -255,45 +256,20 @@ class WebScreenshotService:
         elif browser.lower() == 'edge':
             self.driver = Edge(service=self.service, options=self.options)
 
-    async def capture_full_page_screenshot(self, url, output_file):
+    async def capture_full_page_screenshot(self, url, output_file) -> bool:
         """
 
         :param url: 网页URL
         :param output_file: 输出文件路径
         :return:
         """
-        logger.debug(app_lang.logs.web_screenshot.capturing.format(url=url))
+        logger.info(app_lang.logs.web_screenshot.capturing.format(url=url))
 
         # 访问指定的URL
         self.driver.get(url)
 
-        last_height = self.driver.execute_script('return document.body.parentNode.scrollHeight')
-
-        current_scroll_count = 0
-        while True:
-            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            await asyncio.sleep(app_config.commands.web_screenshot.scroll_delay)
-            new_height = self.driver.execute_script('return document.body.parentNode.scrollHeight')
-
-            if new_height == last_height:
-                break
-
-            if current_scroll_count >= app_config.commands.web_screenshot.max_scroll_count:
-                break
-
-            last_height = new_height
-
-            current_scroll_count += 1
-
-            logger.info(
-                app_lang.logs.web_screenshot.scroll_count.format(
-                    count=current_scroll_count,
-                    max=app_config.commands.web_screenshot.max_scroll_count
-                )
-            )
-
-        # 最后再等待一段时间，确保渲染完成
-        self.driver.implicitly_wait(10)
+        # 等待一段时间，确保渲染完成
+        self.driver.implicitly_wait(app_config.commands.web_screenshot.implicitly_wait_time)
 
         # 获取网页的长和宽
         required_width = self.driver.execute_script('return document.body.parentNode.scrollWidth')
@@ -302,8 +278,11 @@ class WebScreenshotService:
         # 设置浏览器窗口的大小
         self.driver.set_window_size(required_width, required_height)
 
+        # 获取DOM元素
+        element = self.driver.find_element(By.TAG_NAME, "body")
+
         # 截图并保存
-        self.driver.save_screenshot(output_file)
+        return element.screenshot(output_file)
 
     def close(self):
         # 关闭浏览器
