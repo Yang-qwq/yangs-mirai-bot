@@ -35,7 +35,7 @@ from webdriver_manager.microsoft import EdgeChromiumDriverManager
 from selenium.webdriver.common.by import By
 from wordcloud import WordCloud
 
-APP_VERSION = "0.1.2.2"
+APP_VERSION = "0.2.0.0"
 
 
 def init_structure():
@@ -597,15 +597,6 @@ class MinigameGobang(object):
 
 
 class MiraiMessageBase(object):
-    def __init__(self, full_response_structure: dict):
-        """初始化Mirai消息基类
-
-        :param full_response_structure: Mirai返回的完整消息结构
-        """
-        self.sync_id = full_response_structure.get('syncId', -1)
-        self.data = full_response_structure.get('data', {})
-        self.content = full_response_structure.get('content', {})
-
     def __str__(self, use_strip: bool = False, stringifies_at: bool = True) -> str:
         """转换消息链为纯文本。无法用纯文本表示的消息会丢失信息，如任何图片都是`[图片]`
         https://github.com/mamoe/mirai/blob/dev/docs/Messages.md#%E6%B6%88%E6%81%AF%E5%85%83%E7%B4%A0
@@ -614,11 +605,11 @@ class MiraiMessageBase(object):
         :param use_strip: 是否使用strip
         :return: str
         """
-        _text = ""
+        _text = ''
 
         for msg in self.get_message_chain():
             # 如果为纯文本
-            if msg["type"] == "Plain":
+            if msg['type'] == 'Plain':
                 _text += msg["text"]
             elif msg['type'] == 'Image':
                 _text += '[图片]'
@@ -635,6 +626,50 @@ class MiraiMessageBase(object):
 
         return _text
 
+
+class MiraiRequest(MiraiMessageBase):
+    def __init__(self, command: str, target: int, message_chain: list, session: str = None, sub_command: str = None,
+                 sync_id: int = -1):
+        super().__init__()
+
+        self.sync_id = sync_id
+        self.command = command
+        self.sub_command = sub_command
+        self.session_key = session
+        self.target = target
+        self.message_chain = message_chain
+
+    def set_session(self, session: str):
+        self.session_key = session
+        return self
+
+    def get_message_chain(self) -> list:
+        return self.message_chain
+
+    def dump_payload(self) -> str:
+        return json.dumps({
+            "syncId": self.sync_id,
+            "command": self.command,
+            "subCommand": self.sub_command,
+            "content": {
+                "sessionKey": self.session_key,
+                "target": self.target,
+                "messageChain": self.message_chain,
+            },
+        })
+
+class MiraiResponse(MiraiMessageBase):
+    def __init__(self, full_data_structure: dict):
+        """初始化Mirai消息基类
+
+        :param full_data_structure: Mirai返回的完整消息结构
+        """
+        super().__init__()
+
+        self.sync_id = full_data_structure.get('syncId', -1)
+        self.data = full_data_structure.get('data', {})
+        self.content = full_data_structure.get('content', {})
+
     def get_message_chain(self) -> list:
         """获取消息链
 
@@ -648,12 +683,6 @@ class MiraiMessageBase(object):
         else:
             return []
 
-
-class MiraiRequest(MiraiMessageBase):
-    pass
-
-
-class MiraiResponse(MiraiMessageBase):
     def format_msg(self) -> str:
         """格式化消息
 
@@ -874,7 +903,7 @@ class Bot(object):
             return None
 
         # 开始构建消息格式
-        reply_msg = {
+        payload = {
             "syncId": "-1",
             "command": command,
             "subCommand": sub_command,
@@ -885,10 +914,10 @@ class Bot(object):
             },
         }
 
-        reply_json = json.dumps(reply_msg)
+        reply_json = json.dumps(payload)
 
         # 记录日志
-        logger.info('[SEND-%s] (%s): %s', command, target, MiraiMessageBase(reply_msg).__str__())
+        logger.info('[SEND-%s] (%s): %s', command, target, MiraiResponse(payload).__str__())
 
         self.counter['send'] += 1
 
