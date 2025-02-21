@@ -626,38 +626,6 @@ class MiraiMessageBase(object):
 
         return _text
 
-
-class MiraiRequest(MiraiMessageBase):
-    def __init__(self, command: str, target: int, message_chain: list, session: str = None, sub_command: str = None,
-                 sync_id: int = -1):
-        super().__init__()
-
-        self.sync_id = sync_id
-        self.command = command
-        self.sub_command = sub_command
-        self.session_key = session
-        self.target = target
-        self.message_chain = message_chain
-
-    def set_session(self, session: str):
-        self.session_key = session
-        return self
-
-    def get_message_chain(self) -> list:
-        return self.message_chain
-
-    def dump_payload(self) -> str:
-        return json.dumps({
-            "syncId": self.sync_id,
-            "command": self.command,
-            "subCommand": self.sub_command,
-            "content": {
-                "sessionKey": self.session_key,
-                "target": self.target,
-                "messageChain": self.message_chain,
-            },
-        })
-
 class MiraiResponse(MiraiMessageBase):
     def __init__(self, full_data_structure: dict):
         """初始化Mirai消息基类
@@ -843,6 +811,30 @@ class MiraiResponse(MiraiMessageBase):
         :return: int | None
         """
         return self.get_group_id() if self.get_group_id() else self.get_sender_id()
+
+
+class MiraiRequest(MiraiMessageBase):
+    def __init__(self, res: MiraiResponse):
+        super().__init__()
+
+    # def set_session(self, session: str):
+    #     self.session_key = session
+    #     return self
+    #
+    # def get_message_chain(self) -> list:
+    #     return self.message_chain
+
+    # def dump_payload(self) -> str:
+    #     return json.dumps({
+    #         "syncId": self.sync_id,
+    #         "command": self.command,
+    #         "subCommand": self.sub_command,
+    #         "content": {
+    #             "sessionKey": self.session_key,
+    #             "target": self.target,
+    #             "messageChain": self.message_chain,
+    #         },
+    #     })
 
 
 class Bot(object):
