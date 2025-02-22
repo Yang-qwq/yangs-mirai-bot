@@ -626,6 +626,7 @@ class MiraiMessageBase(object):
 
         return _text
 
+
 class MiraiResponse(MiraiMessageBase):
     def __init__(self, full_data_structure: dict):
         """初始化Mirai消息基类
@@ -634,9 +635,12 @@ class MiraiResponse(MiraiMessageBase):
         """
         super().__init__()
 
-        self.sync_id = full_data_structure.get('syncId', -1)
+        self.sync_id = full_data_structure.get('syncId', '-1')
         self.data = full_data_structure.get('data', {})
         self.content = full_data_structure.get('content', {})
+
+    def get_sync_id(self) -> str:
+        return self.sync_id
 
     def get_message_chain(self) -> list:
         """获取消息链
@@ -814,27 +818,41 @@ class MiraiResponse(MiraiMessageBase):
 
 
 class MiraiRequest(MiraiMessageBase):
-    def __init__(self, res: MiraiResponse):
+    def __init__(self, mirai_res: MiraiResponse, command: str, sub_command: Optional[str] = None, message_chain=None):
         super().__init__()
+        if message_chain is None:
+            self.message_chain = []
 
-    # def set_session(self, session: str):
-    #     self.session_key = session
-    #     return self
-    #
-    # def get_message_chain(self) -> list:
-    #     return self.message_chain
+        self.mirai_res = mirai_res
 
-    # def dump_payload(self) -> str:
-    #     return json.dumps({
-    #         "syncId": self.sync_id,
-    #         "command": self.command,
-    #         "subCommand": self.sub_command,
-    #         "content": {
-    #             "sessionKey": self.session_key,
-    #             "target": self.target,
-    #             "messageChain": self.message_chain,
-    #         },
-    #     })
+        self.session = mirai_res.get_session()
+        self.command = command
+        self.sub_command = sub_command
+
+    def add_plain(self, text: str):
+        self.message_chain.append({
+            "type": "Plain",
+            "text": text,
+        })
+
+    def get_message_chain(self) -> list:
+        return self.message_chain
+
+    def dump_payload(self, is_json: bool = True) -> str | dict:
+        payload = {
+            "syncId": self.mirai_res.get_sync_id(),
+            "command": self.command,
+            "subCommand": self.sub_command,
+            "content": {
+                "sessionKey": self.session,
+                "target": self.mirai_res.get_target_loc(),
+                "messageChain": self.message_chain,
+            },
+        }
+        if is_json:
+            return json.dumps(payload)
+        else:
+            return payload
 
 
 class Bot(object):
