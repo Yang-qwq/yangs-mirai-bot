@@ -38,7 +38,7 @@ from wordcloud import WordCloud
 import fnmatch
 
 APP_VERSION = "0.2.0.0"
-
+# SECURITY_LOGGER_LEVEL = 35
 
 def init_structure():
     """初始化程序文件目录结构
@@ -85,7 +85,11 @@ def compress_latest_logs(path: os.PathLike | str = 'logs/main.log') -> None:
     :param path: 日志文件路径
     :return: None
     """
-    if os.path.exists(path):
+    # 当路径为块设备时（如`/dev/null`），则不进行压缩
+    if os.path.ismount(path):
+        return
+
+    elif os.path.exists(path):
         print("Compressing old logs...")
 
         timestamp = datetime.now().strftime("%Y-%m-%d")
@@ -111,7 +115,8 @@ def compress_latest_logs(path: os.PathLike | str = 'logs/main.log') -> None:
             warnings.warn(f"Error compressing logs: {e}", ResourceWarning)
             # 如果压缩失败，保留原始文件
             return
-
+    else:
+        return
 
 def get_cpu_name() -> str:
     """获取CPU名称，如果无法获取则返回Unknown CPU
