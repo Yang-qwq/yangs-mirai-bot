@@ -18,11 +18,6 @@ app:
   # 指定合成的图片使用哪种字体
   font: ""
 
-  # selenium的通用配置
-  selenium_config:
-    browser: "edge"
-    binary_location: "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
-
 bot:
   # 机器人QQ号，如果mirai-api-http配置为单账户模式可以不填
   account: 114514
