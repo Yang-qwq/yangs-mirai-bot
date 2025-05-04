@@ -18,6 +18,11 @@ app:
   # 指定合成的图片使用哪种字体
   font: ""
 
+  # selenium的通用配置
+  selenium_config:
+    browser: "edge"
+    binary_location: "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
+
 bot:
   # 机器人QQ号，如果mirai-api-http配置为单账户模式可以不填
   account: 114514
@@ -185,6 +190,43 @@ wordcloud:
   contour_width: 2
   colormap: 'viridis'
   repeat: True
+
+# 网页截图通用配置
+web_screenshot_common:
+    enable: true
+
+    # 浏览器类型，可以是`chrome`，`firefox`或`edge`
+    browser: "edge"
+
+    # 浏览器二进制文件路径
+    binary_location: "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
+
+    #
+    implicitly_wait_time: 10
+
+# 网页截图
+auto_web_screenshot:
+  enable: true
+  is_white_list: false
+  group_list: [ ]
+  user_list: [ ]
+
+  # 黑名单列表
+  # 仅填写域名部分即可
+  website_black_list:
+    - '*.example.com'
+    - 'example.com'
+    - '*.xxx'
+
+    # B站，避免资源浪费
+    # 见：[#bilibili_url_detect]
+    - '*.bilibili.com'
+    - 'bilibili.com'
+    - 'b23.tv'
+
+  # 黑名单处理方式
+  # 0: 允许访问 1: 静默拒绝（打印控制台日志） 2: 直接拒绝
+  website_black_list_mode: 1
 
 # 定时任务
 schedule:
