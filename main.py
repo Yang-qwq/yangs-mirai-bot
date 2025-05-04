@@ -37,8 +37,8 @@ from selenium.webdriver.common.by import By
 from wordcloud import WordCloud
 import fnmatch
 
-APP_VERSION = "0.2.0.0"
-# SECURITY_LOGGER_LEVEL = 35
+APP_VERSION = "0.2.0.1"
+SECURITY_LOGGER_LEVEL = 35
 
 def init_structure():
     """初始化程序文件目录结构
@@ -153,6 +153,14 @@ class TargetNotExistException(Exception):
 class MessageCancelledException(Exception):
     pass
 
+# 创建Logger类
+class CustomLogger(logging.Logger):
+    def security(self, msg, *args, **kwargs):
+        """
+        添加security方法，用于记录安全相关的日志
+        """
+        if self.isEnabledFor(SECURITY_LOGGER_LEVEL):
+            self._log(SECURITY_LOGGER_LEVEL, msg, args, **kwargs)
 
 class CallableDict:
     def __init__(self, data: dict):
@@ -1472,7 +1480,7 @@ class Bot(object):
                 group_list=app_config.commands.lolicon_api.group_list,
                 reverse_result=app_config.commands.lolicon_api.is_white_list
         ):
-            logger.warning(app_lang.logs.command_lolicon_api.forbidden.format(
+            logger.security(app_lang.logs.command_lolicon_api.forbidden.format(
                 id=mirai_res.get_sender_id()
             ))
             mirai_req.add_plain(app_lang.template.lolicon_api.forbidden)
@@ -1782,7 +1790,7 @@ class Bot(object):
                 group_list=app_config.bilibili_url_detect.group_list,
                 reverse_result=app_config.bilibili_url_detect.is_white_list
         ):
-            logger.warning(app_lang.logs.ignore_bilibili_video_detect.format(
+            logger.security(app_lang.logs.ignore_bilibili_video_detect.format(
                 id=mirai_res.get_sender_id(),
                 video_id="N/A"
             ))
@@ -1995,10 +2003,10 @@ class Bot(object):
         if is_blacklisted:
             mode = app_config.auto_web_screenshot.website_black_list_mode
             if mode == 1:
-                logger.info(app_lang.logs.web_screenshot.forbidden.format(url=full_url))
+                logger.security(app_lang.logs.web_screenshot.forbidden.format(url=full_url))
                 return None # 静默拒绝
             elif mode == 2:
-                logger.info(app_lang.logs.web_screenshot.forbidden.format(url=full_url))
+                logger.security(app_lang.logs.web_screenshot.forbidden.format(url=full_url))
                 mirai_req.add_plain(app_lang.template.web_screenshot.forbidden)
                 return await self.send_mirai_req(mirai_req)
             # mode == 0 允许访问，继续往下走
@@ -2179,14 +2187,20 @@ if __name__ == "__main__":
     app_lang = Lang(app_config.app.lang)
 
     # 配置logging
-    logging.basicConfig(
-        filename=app_config.app.log_path,
-        level=app_config.app.log_level,
-        format=app_config.app.log_format,
-    )
+    # 自定义日志级别
+    logging.addLevelName(SECURITY_LOGGER_LEVEL, 'SECURITY')
+    logging.setLoggerClass(CustomLogger)
 
-    logger = logging.getLogger()
+    # 创建logger实例
+    logger = logging.getLogger(__name__)
+    logger.setLevel(app_config.app.log_level)
 
+    # 配置文件处理器
+    file_handler = logging.FileHandler(app_config.app.log_path)
+    file_handler.setFormatter(logging.Formatter(app_config.app.log_format))
+    logger.addHandler(file_handler)
+
+    # 配置控制台处理器
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(logging.Formatter(app_config.app.log_format))
     logger.addHandler(console_handler)
