@@ -451,60 +451,6 @@ def no_command_prefix():
     return decorator
 
 
-def whitelist_check(from_user_id: int, from_group_id: Optional[int], user_list: list[int], group_list: Optional[list[int]] = None,
-                    reverse_result: bool = False) -> bool:
-    """检查用户/群是否在白名单中
-
-    基本逻辑：
-    1. 如果在白名单中，返回True
-    2. 如果不在白名单中，返回False
-    3. 如果reverse_result为True，则反转结果
-
-    参数:
-        from_user_id (int): 发送者的QQ号
-        from_group_id (Optional[int]): 发送者的群号，如果是私聊则为None
-        user_list (list[int]): 用户白名单列表
-        group_list (Optional[list[int]]): 群组白名单列表，默认为None
-        reverse_result (bool): 是否反转结果，默认为False
-            - 当为False时，检查是否在白名单中
-            - 当为True时，检查是否在黑名单中
-
-    返回:
-        bool: 是否允许访问
-            - 群聊消息：需要同时满足群组和用户的条件
-            - 私聊消息：只需要满足用户的条件
-
-    示例:
-        >>> whitelist_check(123456, 789012, [123456], [789012])
-        True
-        >>> whitelist_check(123456, 789012, [123456], [789012], reverse_result=True)
-        False
-    """
-    if group_list is None:
-        group_list = []
-
-    if from_group_id:  # 群组消息
-        # 检查群组和用户是否在名单中
-        group_allowed = from_group_id in group_list
-        user_allowed = from_user_id in user_list
-
-        # 如果reverse_result为True，则反转结果
-        if reverse_result:
-            group_allowed = not group_allowed
-            user_allowed = not user_allowed
-
-        return group_allowed and user_allowed
-    else:  # 私聊消息
-        # 检查用户是否在名单中
-        user_allowed = from_user_id in user_list
-
-        # 如果reverse_result为True，则反转结果
-        if reverse_result:
-            user_allowed = not user_allowed
-
-        return user_allowed
-
-
 class MyScheduler(object):
     class BuiltinScheduledTasks:
         @staticmethod
@@ -953,6 +899,22 @@ class MiraiResponse(MiraiMessageBase):
         :return: int | None
         """
         return self.get_group_id() if self.get_group_id() else self.get_sender_id()
+
+    def is_in_user_list(self, user_list: list[int]) -> bool:
+        """检查发送者是否在用户列表中
+
+        :param user_list: 用户列表
+        :return: bool
+        """
+        return self.get_sender_id() in user_list
+
+    def is_in_group_list(self, group_list: list[int]) -> bool:
+        """检查发送者是否在群组列表中
+
+        :param group_list: 群组列表
+        :return: bool
+        """
+        return self.get_group_id() in group_list if self.get_group_id() else False
 
 
 class MiraiRequest(MiraiMessageBase):
@@ -1461,17 +1423,23 @@ class Bot(object):
         mirai_req.from_resp(mirai_res)
 
         # 检测黑白名单
-        if whitelist_check(
-                mirai_res.get_sender_id(), mirai_res.get_group_id(),
-                user_list=app_config.commands.lolicon_api.user_list,
-                group_list=app_config.commands.lolicon_api.group_list,
-                reverse_result=app_config.commands.lolicon_api.is_white_list
-        ):
-            logger.warning(app_lang.logs.command_lolicon_api.forbidden.format(
-                id=mirai_res.get_sender_id()
-            ))
-            mirai_req.add_plain(app_lang.template.lolicon_api.forbidden)
-            return mirai_req
+        allow_user_access = mirai_res.is_in_user_list(app_config.commands.lolicon_api.user_list)
+        allow_group_access = mirai_res.is_in_group_list(app_config.commands.lolicon_api.group_list)
+        if app_config.commands.lolicon_api.is_white_list:
+            if not allow_user_access or not allow_group_access:
+                mirai_req.add_plain(app_lang.template.lolicon_api.forbidden)
+                logger.warning(app_lang.logs.command_lolicon_api.forbidden.format(
+                    id=mirai_res.get_sender_id()
+                ))
+                return mirai_req
+        else:  # 黑名单
+            if allow_user_access or allow_group_access:
+                mirai_req.add_plain(app_lang.template.lolicon_api.forbidden)
+                logger.warning(app_lang.logs.command_lolicon_api.forbidden.format(
+                    id=mirai_res.get_sender_id()
+                ))
+                mirai_req.add_plain(app_lang.template.lolicon_api.forbidden)
+                return mirai_req
 
         # 处理不同命令
         if len(args) == 0:  # 默认行为
@@ -1770,18 +1738,22 @@ class Bot(object):
 
     @on_message_types('GroupMessage')
     async def _bilibili_url_detect(self, mirai_res: MiraiResponse):
-        # 先做白名单判断
-        if whitelist_check(
-                mirai_res.get_sender_id(), mirai_res.get_group_id(),
-                user_list=app_config.bilibili_url_detect.user_list,
-                group_list=app_config.bilibili_url_detect.group_list,
-                reverse_result=app_config.bilibili_url_detect.is_white_list
-        ):
-            logger.warning(app_lang.logs.ignore_bilibili_video_detect.format(
-                id=mirai_res.get_sender_id(),
-                video_id="N/A"
-            ))
-            return None
+        allow_user_access = mirai_res.is_in_user_list(app_config.bilibili_url_detect.user_list)
+        allow_group_access = mirai_res.is_in_group_list(app_config.bilibili_url_detect.group_list)
+        if app_config.bilibili_url_detect.is_white_list:
+            if not allow_user_access or not allow_group_access:
+                logger.warning(app_lang.logs.ignore_bilibili_video_detect.format(
+                    id=mirai_res.get_sender_id(),
+                    video_id="N/A"
+                ))
+                return None
+        else:  # 黑名单
+            if allow_user_access or allow_group_access:
+                logger.warning(app_lang.logs.ignore_bilibili_video_detect.format(
+                    id=mirai_res.get_sender_id(),
+                    video_id="N/A"
+                ))
+                return None
 
         text = mirai_res.__str__()
         video_matches = list(re.finditer(
@@ -1872,19 +1844,24 @@ class Bot(object):
     @on_message_types('GroupMessage')
     @no_command_prefix()  # 不需要命令前缀
     async def _wordcloud_collector(self, mirai_res: MiraiResponse):
-        if whitelist_check(
-                mirai_res.get_sender_id(), mirai_res.get_group_id(),
-                user_list=app_config.wordcloud.user_list,
-                group_list=app_config.wordcloud.group_list,
-                reverse_result=app_config.wordcloud.is_white_list
-        ):
-            logger.debug(
-                app_lang.logs.wordcloud.format(
-                    id=mirai_res.get_group_id(),
-                    content=mirai_res.__str__()
+        allow_user_access = mirai_res.is_in_user_list(app_config.wordcloud.user_list)
+        allow_group_access = mirai_res.is_in_group_list(app_config.wordcloud.group_list)
+        if app_config.wordcloud.is_white_list:
+            if not allow_user_access or not allow_group_access:
+                logger.debug(
+                    app_lang.logs.wordcloud.format(
+                        id=mirai_res.get_group_id(),
+                        content=mirai_res.__str__()
+                    )
                 )
-            )
-            return
+        else:  # 黑名单
+            if allow_user_access or allow_group_access:
+                logger.debug(
+                    app_lang.logs.wordcloud.format(
+                        id=mirai_res.get_group_id(),
+                        content=mirai_res.__str__()
+                    )
+                )
 
         # 收集用户对话内容
         with open('data/wordcloud/%s.txt' % mirai_res.get_group_id(), 'a', encoding='utf-8') as f:
@@ -1940,14 +1917,18 @@ class Bot(object):
         if not url_match:
             return mirai_req.cancel()
 
-        if whitelist_check(
-                mirai_res.get_sender_id(), mirai_res.get_group_id(),
-                user_list=app_config.auto_web_screenshot.user_list,
-                group_list=app_config.auto_web_screenshot.group_list,
-                reverse_result=app_config.auto_web_screenshot.is_white_list
-        ):
-            mirai_req.add_plain(app_lang.template.web_screenshot.forbidden)
-            return await self.send_mirai_req(mirai_req)
+        allow_user_access = mirai_res.is_in_user_list(app_config.auto_web_screenshot.user_list)
+        allow_group_access = mirai_res.is_in_group_list(app_config.auto_web_screenshot.group_list)
+        if app_config.auto_web_screenshot.is_white_list:
+            if not allow_user_access or not allow_group_access:
+                mirai_req.add_plain(app_lang.template.web_screenshot.forbidden)
+                return await self.send_mirai_req(mirai_req)
+        else:  # 黑名单
+            if allow_user_access or allow_group_access:
+                mirai_req.add_plain(app_lang.template.web_screenshot.forbidden)
+                return await self.send_mirai_req(mirai_req)
+
+
 
         # 提取完整URL
         full_url = url_match.group(0)
