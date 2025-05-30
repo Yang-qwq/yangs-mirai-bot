@@ -37,8 +37,8 @@ from selenium.webdriver.common.by import By
 from wordcloud import WordCloud
 import fnmatch
 
-APP_VERSION = "0.2.0.0"
-
+APP_VERSION = "0.2.0.1"
+SECURITY_LOGGER_LEVEL = 35
 
 def init_structure():
     """初始化程序文件目录结构
@@ -85,7 +85,11 @@ def compress_latest_logs(path: os.PathLike | str = 'logs/main.log') -> None:
     :param path: 日志文件路径
     :return: None
     """
-    if os.path.exists(path):
+    # 当路径为块设备时（如`/dev/null`），则不进行压缩
+    if os.path.ismount(path):
+        return
+
+    elif os.path.exists(path):
         print("Compressing old logs...")
 
         timestamp = datetime.now().strftime("%Y-%m-%d")
@@ -111,7 +115,8 @@ def compress_latest_logs(path: os.PathLike | str = 'logs/main.log') -> None:
             warnings.warn(f"Error compressing logs: {e}", ResourceWarning)
             # 如果压缩失败，保留原始文件
             return
-
+    else:
+        return
 
 def get_cpu_name() -> str:
     """获取CPU名称，如果无法获取则返回Unknown CPU
@@ -148,6 +153,14 @@ class TargetNotExistException(Exception):
 class MessageCancelledException(Exception):
     pass
 
+# 创建Logger类
+class CustomLogger(logging.Logger):
+    def security(self, msg, *args, **kwargs):
+        """
+        添加security方法，用于记录安全相关的日志
+        """
+        if self.isEnabledFor(SECURITY_LOGGER_LEVEL):
+            self._log(SECURITY_LOGGER_LEVEL, msg, args, **kwargs)
 
 class CallableDict:
     def __init__(self, data: dict):
@@ -1928,8 +1941,6 @@ class Bot(object):
                 mirai_req.add_plain(app_lang.template.web_screenshot.forbidden)
                 return await self.send_mirai_req(mirai_req)
 
-
-
         # 提取完整URL
         full_url = url_match.group(0)
         domain = re.search(r'https?://([^/]+)', full_url).group(1)
@@ -1971,10 +1982,10 @@ class Bot(object):
         if is_blacklisted:
             mode = app_config.auto_web_screenshot.website_black_list_mode
             if mode == 1:
-                logger.info(app_lang.logs.web_screenshot.forbidden.format(url=full_url))
+                logger.security(app_lang.logs.web_screenshot.forbidden.format(url=full_url))
                 return None # 静默拒绝
             elif mode == 2:
-                logger.info(app_lang.logs.web_screenshot.forbidden.format(url=full_url))
+                logger.security(app_lang.logs.web_screenshot.forbidden.format(url=full_url))
                 mirai_req.add_plain(app_lang.template.web_screenshot.forbidden)
                 return await self.send_mirai_req(mirai_req)
             # mode == 0 允许访问，继续往下走
@@ -2155,14 +2166,20 @@ if __name__ == "__main__":
     app_lang = Lang(app_config.app.lang)
 
     # 配置logging
-    logging.basicConfig(
-        filename=app_config.app.log_path,
-        level=app_config.app.log_level,
-        format=app_config.app.log_format,
-    )
+    # 自定义日志级别
+    logging.addLevelName(SECURITY_LOGGER_LEVEL, 'SECURITY')
+    logging.setLoggerClass(CustomLogger)
 
-    logger = logging.getLogger()
+    # 创建logger实例
+    logger = logging.getLogger(__name__)
+    logger.setLevel(app_config.app.log_level)
 
+    # 配置文件处理器
+    file_handler = logging.FileHandler(app_config.app.log_path)
+    file_handler.setFormatter(logging.Formatter(app_config.app.log_format))
+    logger.addHandler(file_handler)
+
+    # 配置控制台处理器
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(logging.Formatter(app_config.app.log_format))
     logger.addHandler(console_handler)
