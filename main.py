@@ -37,7 +37,7 @@ from selenium.webdriver.common.by import By
 from wordcloud import WordCloud
 import fnmatch
 
-APP_VERSION = "0.2.0.1"
+APP_VERSION = "0.2.1.0"
 SECURITY_LOGGER_LEVEL = 35
 
 def init_structure():
@@ -954,6 +954,7 @@ class MiraiRequest(MiraiMessageBase):
         self.is_cancelled = False
 
         self.target = None
+        self._custom_content = None  # 新增：自定义 content
 
     def from_resp(self, mirai_res: MiraiResponse):
         """
@@ -1047,6 +1048,13 @@ class MiraiRequest(MiraiMessageBase):
         """
         self.message_chain = []
 
+    def reset_custom_content_state(self):
+        """重置自定义内容状态
+
+        :return: None
+        """
+        self._custom_content = None
+
     def get_message_chain(self) -> list:
         """获取消息链
 
@@ -1065,23 +1073,29 @@ class MiraiRequest(MiraiMessageBase):
             self.is_cancelled = True
             return None
 
+    def set_custom_content(self, content: dict):
+        """设置自定义 content 字段"""
+        self._custom_content = content
+
     def dump_payload(self, is_json: bool = True) -> str | dict:
-        """
-
-        :param is_json: 是否转换为JSON格式
-        :return: str | dict
-        """
-        payload = {
-            "syncId": self.sync_id,
-            "command": self.command,
-            "subCommand": self.sub_command,
-            "content": {
-                "sessionKey": self.session,
-                "target": self.target,
-                "messageChain": None if len(self.message_chain) == 0 else self.message_chain,
-            },
-        }
-
+        if self._custom_content is not None:
+            payload = {
+                "syncId": self.sync_id,
+                "command": self.command,
+                "subCommand": self.sub_command,
+                "content": self._custom_content,
+            }
+        else:
+            payload = {
+                "syncId": self.sync_id,
+                "command": self.command,
+                "subCommand": self.sub_command,
+                "content": {
+                    "sessionKey": self.session,
+                    "target": self.target,
+                    "messageChain": None if len(self.message_chain) == 0 else self.message_chain,
+                },
+            }
         if is_json:
             return json.dumps(payload)
         else:
@@ -1449,14 +1463,14 @@ class Bot(object):
         if app_config.commands.lolicon_api.is_white_list:
             if not is_user_in_list or not is_group_in_list:
                 mirai_req.add_plain(app_lang.template.lolicon_api.forbidden)
-                logger.warning(app_lang.logs.command_lolicon_api.forbidden.format(
+                logger.security(app_lang.logs.command_lolicon_api.forbidden.format(
                     id=mirai_res.get_sender_id()
                 ))
                 return mirai_req
         else:  # 黑名单
             if is_user_in_list or is_group_in_list:
                 mirai_req.add_plain(app_lang.template.lolicon_api.forbidden)
-                logger.warning(app_lang.logs.command_lolicon_api.forbidden.format(
+                logger.security(app_lang.logs.command_lolicon_api.forbidden.format(
                     id=mirai_res.get_sender_id()
                 ))
                 return mirai_req
@@ -1700,14 +1714,14 @@ class Bot(object):
         is_group_in_list = mirai_res.is_in_group_list(app_config.bilibili_url_detect.group_list)
         if app_config.bilibili_url_detect.is_white_list:
             if not is_user_in_list or not is_group_in_list:
-                logger.warning(app_lang.logs.ignore_bilibili_video_detect.format(
+                logger.security(app_lang.logs.ignore_bilibili_video_detect.format(
                     id=mirai_res.get_sender_id(),
                     video_id="N/A"
                 ))
                 return None
         else:  # 黑名单
             if is_user_in_list or is_group_in_list:
-                logger.warning(app_lang.logs.ignore_bilibili_video_detect.format(
+                logger.security(app_lang.logs.ignore_bilibili_video_detect.format(
                     id=mirai_res.get_sender_id(),
                     video_id="N/A"
                 ))
@@ -1968,6 +1982,51 @@ class Bot(object):
 
             return await self.send_mirai_req(mirai_req)
 
+    @on_message_types('BotInvitedJoinGroupRequestEvent')
+    async def bot_invited_join_group_request_event_handler(self, mirai_res: MiraiResponse):
+        """
+        处理机器人被邀请加入群组的请求事件
+        """
+        mirai_req = MiraiRequest('resp_botInvitedJoinGroupRequestEvent')
+
+        operate = app_config.bot_invited_join_group_request_event_handler.operation
+
+        # 检查黑白名单
+        is_user_in_list = mirai_res.is_in_user_list(
+            app_config.bot_invited_join_group_request_event_handler.user_list)
+        is_group_in_list = mirai_res.is_in_group_list(
+            app_config.bot_invited_join_group_request_event_handler.group_list)
+        if app_config.bot_invited_join_group_request_event_handler.is_white_list:
+            if not is_user_in_list or not is_group_in_list:
+                operate = 1 if operate == 0 else operate = 0
+        else:  # 黑名单
+            if is_user_in_list or is_group_in_list:
+                operate = 1 if operate == 0 else operate = 0
+
+
+        # 提取事件参数
+        event_id = mirai_res.data.get("eventId")
+        from_id = mirai_res.data.get("fromId")
+        group_id = mirai_res.data.get("groupId")
+
+        # 构造自定义 content
+        mirai_req.set_custom_content({
+            "sessionKey": self.session,
+            "eventId": event_id,
+            "fromId": from_id,
+            "groupId": group_id,
+            "operate": operate,
+            "message": app_lang.bot_invited_join_group_request_event_handler.accept if operate == 0 else app_lang.bot_invited_join_group_request_event_handler.reject
+        })
+
+        # logger.security(app_lang.logs.bot_invited_join_group_request_event_handler.accept.format(
+        #     group_name=mirai_res.get_group_name(),
+        #     group_id=mirai_res.get_group_id()
+        # ))
+
+        # 发送接受请求
+        return await self.send_mirai_req(mirai_req)
+
     async def run_async(self):
         """异步开始运行机器人
 
@@ -2046,6 +2105,9 @@ class Bot(object):
                             if app_config.auto_web_screenshot.enable:
                                 await self.auto_web_screenshot(mirai_res)
 
+                            # 模块：机器人入群请求事件处理
+                            if app_config.bot_invited_join_group_request_event_handler.enable:
+                                await self.bot_invited_join_group_request_event_handler(mirai_res)
                         except MessageCancelledException:  # 消息被取消
                             # logger.debug()
                             pass

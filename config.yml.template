@@ -36,6 +36,13 @@ bot:
   # 当发生异常时，是否发送异常消息内容
   send_exception: true
 
+# 权限配置
+permission:
+    master: 10086  # 主人QQ号，只能是一个
+
+    # 管理员QQ号列表，可以有多个
+    admins: [114514, 1919810]  # 管理员QQ号列表
+
 # 基础命令
 commands:
   # 状态查询

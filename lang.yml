@@ -32,6 +32,9 @@ logs:
   web_screenshot:
     capturing: "正在尝试生成{url}的网页截图..."
     forbidden: "已拒绝对{url}的截图请求"
+  bot_invited_join_group_request_event_handler:
+    accept: "已同意邀请加入群聊{group_name}({group_id})"
+    reject: "已拒绝邀请加入群聊{group_name}({group_id})"
   try_login: "正在尝试登录账号{account}..."
   get_session_successful: "成功获取SESSION：{session}"
   try_reconnect: "连接断开，正在尝试重连..."
@@ -85,4 +88,7 @@ template:
     too_less_arguments: "参数太少，这样做至少需要{n}个参数！\n输入 {command_prefix}wsc help 查看帮助"
     forbidden: "好像不可以截图哦~"
     help: "{command_prefix}wsc <url|help>\n.<url> - 要截图的目标url\n.help - 查看帮助"
+  bot_invited_join_group_request_event_handler:
+    accept: "欸，实在叫我吗？我这就来哦~ヾ(≧▽≦*)o"
+    reject: "不行欸，我不想去可以吗ο(=•ω＜=)ρ⌒☆"
   unknown_command: "未知命令w(ﾟДﾟ)w！"
