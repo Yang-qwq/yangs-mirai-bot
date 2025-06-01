@@ -37,7 +37,7 @@ from selenium.webdriver.common.by import By
 from wordcloud import WordCloud
 import fnmatch
 
-APP_VERSION = "0.2.0.1"
+APP_VERSION = "0.2.0.2"
 SECURITY_LOGGER_LEVEL = 35
 
 def init_structure():
@@ -1877,23 +1877,21 @@ class Bot(object):
         if not url_match:
             return mirai_req.cancel()
 
+        # 初始化黑名单标志为False
+        is_blacklisted = False
+
         is_user_in_list = mirai_res.is_in_user_list(app_config.auto_web_screenshot.user_list)
         is_group_in_list = mirai_res.is_in_group_list(app_config.auto_web_screenshot.group_list)
         if app_config.auto_web_screenshot.is_white_list:
             if not is_user_in_list or not is_group_in_list:
-                mirai_req.add_plain(app_lang.template.web_screenshot.forbidden)
-                return await self.send_mirai_req(mirai_req)
+                is_blacklisted = True
         else:  # 黑名单
             if is_user_in_list or is_group_in_list:
-                mirai_req.add_plain(app_lang.template.web_screenshot.forbidden)
-                return await self.send_mirai_req(mirai_req)
+                is_blacklisted = True
 
         # 提取完整URL
         full_url = url_match.group(0)
         domain = re.search(r'https?://([^/]+)', full_url).group(1)
-
-        # 初始化黑名单标志为False
-        is_blacklisted = False
 
         # 遍历黑名单中的所有模式
         for pattern in app_config.auto_web_screenshot.website_black_list:
